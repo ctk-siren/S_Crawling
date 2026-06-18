@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>세이렌 핫딜</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">세이렌 크롤링 대시보드</div>
+    <nav class="tabs">
+      <a class="tab" href="/">공고</a>
+      <a class="tab active" href="/hotdeal">핫딜</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>핫딜 키워드</h2>
+        <span class="muted">다나와·에누리 등에서 최저가 검색</span>
+      </div>
+      <form id="hk-form" class="inline-form">
+        <input id="hk-input" type="text" placeholder="제품 키워드 등록 (예: 블루투스 이어폰)" maxlength="50" />
+        <button type="submit">등록</button>
+      </form>
+    </section>
+
+    <div id="hk-groups">
+      {% for g in groups %}
+      <section class="panel hk-group" data-id="{{ g.id }}">
+        <div class="panel-head">
+          <h2>#{{ g.keyword }} <span class="count">{{ g.deals|length }}</span></h2>
+          <div class="head-actions">
+            <button class="btn-secondary hk-refresh" data-id="{{ g.id }}">재검색</button>
+            <button class="btn-danger hk-del" data-id="{{ g.id }}">삭제</button>
+          </div>
+        </div>
+        <div class="cards">
+          {% for d in g.deals %}
+          <article class="card deal">
+            <div class="card-top"><span class="source">{{ d.site }}</span></div>
+            <h3 class="card-title">
+              <a href="{{ d.url }}" target="_blank" rel="noopener">{{ d.product_name }}</a>
+            </h3>
+            <div class="price">{{ d.price }}</div>
+            <a class="card-link" href="{{ d.url }}" target="_blank" rel="noopener">상품 보기 →</a>
+          </article>
+          {% else %}
+          <div class="empty">수집된 상품이 없습니다. <b>재검색</b>을 눌러보세요.</div>
+          {% endfor %}
+        </div>
+      </section>
+      {% else %}
+      <div class="empty panel">등록된 핫딜 키워드가 없습니다. 위에서 키워드를 등록하세요.</div>
+      {% endfor %}
+    </div>
+  </main>
+
+  <script>
+    // 핫딜 키워드 등록 (등록 즉시 서버에서 수집)
+    document.getElementById("hk-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("hk-input");
+      const keyword = input.value.trim();
+      if (!keyword) return;
+      const btn = e.target.querySelector("button");
+      btn.disabled = true;
+      btn.textContent = "검색 중...";
+      try {
+        const res = await fetch("/api/hotdeal-keywords", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keyword }),
+        });
+        const data = await res.json();
+        if (data.ok) location.reload();
+        else alert(data.error || "등록 실패");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "등록";
+      }
+    });
+
+    // 재검색 / 삭제 (이벤트 위임)
+    document.getElementById("hk-groups").addEventListener("click", async (e) => {
+      const refresh = e.target.closest(".hk-refresh");
+      const del = e.target.closest(".hk-del");
+      if (refresh) {
+        const id = refresh.dataset.id;
+        refresh.disabled = true;
+        refresh.textContent = "검색 중...";
+        const res = await fetch(`/api/hotdeal-keywords/${id}/refresh`, { method: "POST" });
+        const data = await res.json();
+        if (data.ok) location.reload();
+        else { alert(data.error || "재검색 실패"); refresh.disabled = false; refresh.textContent = "재검색"; }
+      } else if (del) {
+        const id = del.dataset.id;
+        if (!confirm("이 키워드를 삭제할까요?")) return;
+        const res = await fetch(`/api/hotdeal-keywords/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        if (data.ok) location.reload();
+        else alert(data.error || "삭제 실패");
+      }
+    });
+  </script>
+</body>
+</html>

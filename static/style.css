@@ -1,0 +1,195 @@
+/* 세이렌 크롤링 대시보드 공통 스타일 */
+
+:root {
+  --bg: #f4f6f9;
+  --panel: #ffffff;
+  --line: #e3e8ef;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --accent: #0ea5e9;
+  --danger: #ef4444;
+  --new: #f59e0b;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* 상단바 */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 0 24px;
+  height: 60px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.brand { font-weight: 700; font-size: 18px; color: var(--primary-dark); }
+.tabs { display: flex; gap: 6px; }
+.tab {
+  text-decoration: none;
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.tab.active { background: var(--primary); color: #fff; }
+
+/* 레이아웃 */
+.container { max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.panel-head h2 { font-size: 17px; margin: 0; }
+.head-actions { display: flex; align-items: center; gap: 12px; }
+.muted { color: var(--muted); font-size: 13px; }
+.count {
+  background: var(--bg);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+/* 폼 / 버튼 */
+.inline-form { display: flex; gap: 8px; }
+.inline-form input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.inline-form input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--primary);
+  color: #fff;
+}
+button:hover { background: var(--primary-dark); }
+button:disabled { opacity: 0.6; cursor: default; }
+.btn-secondary { background: #eef2ff; color: var(--primary-dark); }
+.btn-secondary:hover { background: #e0e7ff; }
+.btn-danger { background: #fee2e2; color: var(--danger); }
+.btn-danger:hover { background: #fecaca; }
+
+/* 키워드 칩 */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 10px 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.chip-core { background: #eff6ff; border-color: #bfdbfe; color: var(--primary-dark); }
+.chip-del {
+  background: transparent;
+  color: var(--muted);
+  padding: 0 2px;
+  font-size: 15px;
+  line-height: 1;
+}
+.chip-del:hover { background: transparent; color: var(--danger); }
+
+/* 카드 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.card-top { display: flex; align-items: center; gap: 8px; }
+.source {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.badge-new {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--new);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.card-title { margin: 0; font-size: 15px; line-height: 1.4; }
+.card-title a { color: var(--text); text-decoration: none; }
+.card-title a:hover { color: var(--primary); }
+.card-meta { font-size: 13px; color: var(--muted); }
+.card-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-size: 12px;
+  background: #ecfeff;
+  color: #0369a1;
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+.card-link {
+  margin-top: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+.card-link:hover { text-decoration: underline; }
+
+/* 핫딜 가격 */
+.deal .price { font-size: 18px; font-weight: 700; color: var(--danger); }
+
+/* 빈 상태 */
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 28px;
+  font-size: 14px;
+}
+.empty.panel { background: var(--panel); border: 1px dashed var(--line); }

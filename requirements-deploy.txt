@@ -1,0 +1,5 @@
+# 운영(리눅스) 배포 전용 추가 패키지
+# 로컬(Windows) 개발에는 필요 없다. 서버에서만 설치한다.
+#   pip install -r requirements.txt -r requirements-deploy.txt
+
+gunicorn==22.0.0

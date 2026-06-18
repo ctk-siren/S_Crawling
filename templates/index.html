@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>세이렌 공고 대시보드</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">세이렌 크롤링 대시보드</div>
+    <nav class="tabs">
+      <a class="tab active" href="/">공고</a>
+      <a class="tab" href="/hotdeal">핫딜</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>키워드 관리</h2>
+        <span class="muted">공고 제목에서 매칭할 키워드</span>
+      </div>
+      <form id="kw-form" class="inline-form">
+        <input id="kw-input" type="text" placeholder="키워드 추가 (예: 층간소음)" maxlength="40" />
+        <button type="submit">추가</button>
+      </form>
+      <div id="kw-list" class="chips">
+        {% for k in keywords %}
+        <span class="chip {{ 'chip-core' if k.category == 'core' else '' }}" data-id="{{ k.id }}">
+          #{{ k.keyword }}
+          <button class="chip-del" title="삭제" data-id="{{ k.id }}">×</button>
+        </span>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>수집된 공고 <span class="count">{{ total }}</span></h2>
+        <div class="head-actions">
+          <span class="muted">마지막 수집 {{ last_crawled }}</span>
+          <button id="crawl-btn" class="btn-secondary">지금 수집</button>
+        </div>
+      </div>
+
+      <div id="ann-list" class="cards">
+        {% for a in announcements %}
+        <article class="card">
+          <div class="card-top">
+            <span class="source">{{ a.source }}</span>
+            {% if a.is_new %}<span class="badge-new">NEW</span>{% endif %}
+          </div>
+          <h3 class="card-title">
+            <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
+          </h3>
+          <div class="card-meta">
+            {% if a.deadline %}<span>마감 {{ a.deadline }}</span>{% endif %}
+            {% if a.fund_scale %}<span>· 지원규모 {{ a.fund_scale }}</span>{% endif %}
+          </div>
+          <div class="card-keywords">
+            {% for kw in a.matched_keywords %}<span class="tag">#{{ kw }}</span>{% endfor %}
+          </div>
+          <a class="card-link" href="{{ a.url }}" target="_blank" rel="noopener">공고 원문 보기 →</a>
+        </article>
+        {% else %}
+        <div class="empty">아직 수집된 공고가 없습니다. <b>지금 수집</b>을 눌러보세요.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 공고 키워드 추가
+    document.getElementById("kw-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("kw-input");
+      const keyword = input.value.trim();
+      if (!keyword) return;
+      const res = await fetch("/api/keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        location.reload();
+      } else {
+        alert(data.error || "추가 실패");
+      }
+    });
+
+    // 키워드 삭제 (이벤트 위임)
+    document.getElementById("kw-list").addEventListener("click", async (e) => {
+      const btn = e.target.closest(".chip-del");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const res = await fetch(`/api/keywords/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.ok) location.reload();
+      else alert(data.error || "삭제 실패");
+    });
+
+    // 지금 수집
+    document.getElementById("crawl-btn").addEventListener("click", async (e) => {
+      const btn = e.target;
+      btn.disabled = true;
+      btn.textContent = "수집 중...";
+      try {
+        const res = await fetch("/api/crawl", { method: "POST" });
+        const data = await res.json();
+        if (data.ok) location.reload();
+        else alert("수집 실패");
+      } catch (err) {
+        alert("수집 중 오류: " + err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "지금 수집";
+      }
+    });
+  </script>
+</body>
+</html>
