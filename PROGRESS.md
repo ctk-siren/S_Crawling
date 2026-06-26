@@ -58,6 +58,10 @@
     - config.NTIS_FETCH_DETAIL 토글, 상세 요청 사이 0.3초 지연. 목록 ~10건이라 상세도 ~10요청/회.
     - 전체 run_crawl 80건 17.5초(상세 보강 ~9초 포함), 오류 0.
 
+- [완료] Oracle 배포 실제 수행 — Ubuntu 인스턴스(Osaka), systemd 상시 실행, 포트 5000 개방, 접속 확인.
+    배포 중 수정: siren.service 경로 S_Crawling, iptables는 REJECT보다 위에 삽입해야 함(DEPLOY.md 반영).
+- [완료] 운영 보정 — 시간 KST 표시(database.KST), g2b/iris API 타임아웃 30초로 상향(data.go.kr ReadTimeout 대응).
+
 ## 메모 / 미해결 (확인·후속 필요 — 비워두고 진행)
 - [ ] g2b는 용역(service) 입찰만 수집. 필요 시 공사/물품 오퍼레이션 추가 가능.
 - [ ] iris=과기부 사업공고 API 대체. 산업부 전용 IRIS 공고가 꼭 필요하면 별도 소스 검토.

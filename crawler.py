@@ -28,13 +28,13 @@ import database as db
 # ----------------------------------------------------------------------------
 # 공통 유틸
 # ----------------------------------------------------------------------------
-def fetch(url, params=None):
+def fetch(url, params=None, timeout=None):
     """GET 요청. 실패 시 예외를 올려 호출부에서 사이트 단위로 격리 처리한다."""
     resp = requests.get(
         url,
         params=params,
         headers=config.REQUEST_HEADERS,
-        timeout=config.REQUEST_TIMEOUT,
+        timeout=timeout or config.REQUEST_TIMEOUT,
     )
     resp.raise_for_status()
     resp.encoding = resp.apparent_encoding or "utf-8"
@@ -323,7 +323,7 @@ def crawl_g2b():
         "inqryEndDt": end.strftime("%Y%m%d%H%M"),
         "type": "json",
     }
-    resp = fetch(G2B_ENDPOINT, params=params)
+    resp = fetch(G2B_ENDPOINT, params=params, timeout=config.DATA_GO_KR_TIMEOUT)
     body = resp.json().get("response", {}).get("body", {})
 
     name = _site_name("g2b")
@@ -377,7 +377,7 @@ def crawl_iris():
         "numOfRows": config.MAX_ITEMS_PER_SITE,
         "returnType": "json",
     }
-    resp = fetch(MSIT_ENDPOINT, params=params)
+    resp = fetch(MSIT_ENDPOINT, params=params, timeout=config.DATA_GO_KR_TIMEOUT)
 
     name = _site_name("iris")
     items = []

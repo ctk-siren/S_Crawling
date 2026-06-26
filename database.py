@@ -16,9 +16,12 @@ SQLite 데이터 계층.
 
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import config
+
+# 서버 시간대(UTC 등)와 무관하게 한국시간(KST)으로 기록·표시한다.
+KST = timezone(timedelta(hours=9))
 
 
 # ----------------------------------------------------------------------------
@@ -37,12 +40,13 @@ def get_conn():
 
 
 def _now():
-    """ISO 형식 현재 시각 문자열."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """한국시간(KST) 기준 현재 시각 문자열."""
+    return datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _today():
-    return datetime.now().strftime("%Y-%m-%d")
+    """한국시간(KST) 기준 오늘 날짜."""
+    return datetime.now(KST).strftime("%Y-%m-%d")
 
 
 # ----------------------------------------------------------------------------

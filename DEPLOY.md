@@ -64,11 +64,18 @@ Oracle Cloud 콘솔 → 해당 VCN → Security Lists → Ingress Rules 추가
 - Destination Port Range: `5000`
 
 ### 6-2. 인스턴스 자체 방화벽
-Ubuntu(iptables):
+Ubuntu(iptables): **5000 허용 규칙이 반드시 `REJECT ... icmp-host-prohibited` 줄보다 위에 있어야 한다.**
 ```bash
-sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 5000 -j ACCEPT
+# 먼저 REJECT 줄의 번호를 확인 (보통 5 또는 6)
+sudo iptables -L INPUT -n --line-numbers
+# REJECT 가 5번이면 그 앞(5)에 삽입
+sudo iptables -I INPUT 5 -p tcp --dport 5000 -j ACCEPT
 sudo netfilter-persistent save
+# 확인 — 5000 ACCEPT 가 REJECT 보다 위인지
+sudo iptables -L INPUT -n --line-numbers
 ```
+> netfilter-persistent 가 없으면 `sudo apt install -y iptables-persistent` 후 save.
+> 규칙이 REJECT 아래에 들어가면 접속이 막히니 순서를 꼭 확인한다.
 Oracle Linux(firewalld):
 ```bash
 sudo firewall-cmd --permanent --add-port=5000/tcp

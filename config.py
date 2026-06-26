@@ -106,6 +106,9 @@ def _load_service_key():
 
 DATA_GO_KR_SERVICE_KEY = _load_service_key()
 
+# data.go.kr API 는 가끔 응답이 느려 기본 타임아웃(15초)으로는 ReadTimeout 이 난다. 더 길게 준다.
+DATA_GO_KR_TIMEOUT = 30
+
 # g2b 입찰공고 조회 기간(최근 N일)
 G2B_LOOKBACK_DAYS = 3
 
