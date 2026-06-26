@@ -15,7 +15,25 @@
     </nav>
   </header>
 
-  <main class="container">
+  <main class="container layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>수집 사이트</h2>
+        </div>
+        <ul class="site-list">
+          {% for s in sites %}
+          <li class="site-item">
+            <a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.name }}</a>
+            <span class="count" title="현재 수집된 관련 공고 수">{{ s.count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="sidebar-note">매일 오전 8시 자동 수집</p>
+      </section>
+    </aside>
+
+    <div class="main-col">
     <section class="panel">
       <div class="panel-head">
         <h2>키워드 관리</h2>
@@ -68,6 +86,7 @@
         {% endfor %}
       </div>
     </section>
+    </div>
   </main>
 
   <script>

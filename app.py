@@ -18,6 +18,7 @@ API (JSON)
 
 import logging
 import socket
+from collections import Counter
 
 from flask import Flask, jsonify, render_template, request
 
@@ -40,12 +41,21 @@ def index():
     announcements = db.get_announcements()
     keywords = db.get_keywords()
     last_crawled = db.get_meta("last_crawled_at", "아직 수집 안 함")
+
+    # 왼쪽 사이드바에 표시할 수집 대상 사이트 목록(+현재 저장된 공고 수)
+    counts = Counter(a["source"] for a in announcements)
+    sites = [
+        {"name": s["name"], "url": s["base_url"], "count": counts.get(s["name"], 0)}
+        for s in config.SITES
+    ]
+
     return render_template(
         "index.html",
         announcements=announcements,
         keywords=keywords,
         last_crawled=last_crawled,
         total=len(announcements),
+        sites=sites,
     )
 
 

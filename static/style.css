@@ -50,7 +50,31 @@ body {
 .tab.active { background: var(--primary); color: #fff; }
 
 /* 레이아웃 */
-.container { max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
+.container { max-width: 1080px; margin: 0 auto; padding: 24px 16px 60px; }
+
+/* 사이드바 + 메인 2단 레이아웃 (공고 페이지) */
+.layout { display: flex; gap: 20px; align-items: flex-start; }
+.sidebar { width: 220px; flex-shrink: 0; position: sticky; top: 84px; }
+.main-col { flex: 1; min-width: 0; }
+
+.site-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.site-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.site-item a { text-decoration: none; color: var(--text); font-weight: 600; font-size: 14px; }
+.site-item a:hover { color: var(--primary); }
+.sidebar-note { margin: 14px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+
+@media (max-width: 760px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; position: static; }
+}
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
