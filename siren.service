@@ -22,7 +22,7 @@ User=ubuntu
 # 프로젝트를 클론한 실제 절대경로로 변경 (저장소명이 S_Crawling 이면 아래대로)
 WorkingDirectory=/home/ubuntu/S_Crawling
 # 가상환경 안의 gunicorn 절대경로. --workers 1 필수(스케줄러 중복 방지)
-ExecStart=/home/ubuntu/S_Crawling/.venv/bin/gunicorn --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:5000 wsgi:app
+ExecStart=/home/ubuntu/S_Crawling/.venv/bin/gunicorn --workers 1 --threads 4 --timeout 300 --bind 0.0.0.0:5000 wsgi:app
 Restart=always
 RestartSec=5
 # 서비스키를 환경변수로 줄 경우(service_key.txt 파일을 쓰면 생략 가능)

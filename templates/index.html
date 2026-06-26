@@ -132,18 +132,17 @@
       else alert(data.error || "삭제 실패");
     });
 
-    // 지금 수집
+    // 지금 수집 — 백그라운드로 돌므로 시작만 알리고 안내 (AI 판단 시 1~2분 소요)
     document.getElementById("crawl-btn").addEventListener("click", async (e) => {
       const btn = e.target;
       btn.disabled = true;
-      btn.textContent = "수집 중...";
+      btn.textContent = "수집 시작 중...";
       try {
         const res = await fetch("/api/crawl", { method: "POST" });
         const data = await res.json();
-        if (data.ok) location.reload();
-        else alert("수집 실패");
+        alert(data.message || "수집을 시작했습니다. 1~2분 뒤 새로고침하세요.");
       } catch (err) {
-        alert("수집 중 오류: " + err);
+        alert("수집 시작 중 오류: " + err);
       } finally {
         btn.disabled = false;
         btn.textContent = "지금 수집";

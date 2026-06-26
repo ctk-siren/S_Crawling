@@ -18,6 +18,7 @@ API (JSON)
 
 import logging
 import socket
+import threading
 from collections import Counter
 
 from flask import Flask, jsonify, render_template, request
@@ -159,11 +160,31 @@ def api_refresh_hotdeal(keyword_id):
 
 # ----------------------------------------------------------------------------
 # 공고 수동 수집 (테스트/즉시 갱신용)
+#   AI 판단까지 하면 수집이 1~3분 걸려 HTTP 요청이 타임아웃될 수 있다.
+#   그래서 백그라운드 스레드로 돌리고 즉시 응답한다(중복 실행 방지 플래그).
 # ----------------------------------------------------------------------------
+_crawl_lock = threading.Lock()
+
+
+def _background_crawl():
+    try:
+        summary = crawler.run_crawl()
+        logging.info("수동 수집 완료: %s", summary)
+    except Exception:
+        logging.exception("수동 수집 중 예외")
+    finally:
+        if _crawl_lock.locked():
+            _crawl_lock.release()
+
+
 @app.route("/api/crawl", methods=["POST"])
 def api_crawl():
-    summary = crawler.run_crawl()
-    return jsonify({"ok": True, "summary": summary})
+    if not _crawl_lock.acquire(blocking=False):
+        return jsonify({"ok": True, "started": False, "message": "이미 수집이 진행 중입니다"})
+    threading.Thread(target=_background_crawl, daemon=True).start()
+    return jsonify(
+        {"ok": True, "started": True, "message": "수집을 시작했습니다. 1~2분 뒤 새로고침하세요."}
+    )
 
 
 # ----------------------------------------------------------------------------
