@@ -14,6 +14,7 @@ SQLite 데이터 계층.
   - is_new 는 "오늘 수집된 신규 공고" 강조 표시용 플래그.
 """
 
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -22,6 +23,19 @@ import config
 
 # 서버 시간대(UTC 등)와 무관하게 한국시간(KST)으로 기록·표시한다.
 KST = timezone(timedelta(hours=9))
+
+
+def _deadline_passed(deadline):
+    """
+    마감일이 오늘(KST)보다 이전이면 True(= 마감됨).
+    형식이 사이트마다 다르므로(2026.07.14 / 2026-06-26 10:00:00 등) 숫자만 뽑아
+    앞 8자리(YYYYMMDD)로 비교한다. 마감일이 없거나 파싱 불가면 False(거르지 않음).
+    """
+    digits = re.sub(r"\D", "", deadline or "")
+    if len(digits) < 8:
+        return False
+    # 마감일 당일은 아직 열린 것으로 본다(< 오늘 이어야 마감 처리)
+    return digits[:8] < datetime.now(KST).strftime("%Y%m%d")
 
 
 # ----------------------------------------------------------------------------
@@ -190,10 +204,11 @@ def save_announcement(item):
         return cur.rowcount > 0
 
 
-def get_announcements():
+def get_announcements(only_open=False):
     """
     공고 목록 반환. 신규(오늘) 우선, 매칭 키워드 수 내림차순, 최신순.
     matched_keywords 는 리스트로 변환해 돌려준다.
+    only_open=True 면 마감일이 지난 공고는 제외한다(마감일 없는 건 그대로 유지).
     """
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM announcements").fetchall()
@@ -201,6 +216,8 @@ def get_announcements():
     items = []
     for r in rows:
         d = dict(r)
+        if only_open and _deadline_passed(d.get("deadline")):
+            continue  # 마감 지난 공고 제외
         kws = [k for k in (d.get("matched_keywords") or "").split(",") if k]
         d["matched_keywords"] = kws
         d["match_count"] = len(kws)

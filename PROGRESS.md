@@ -62,7 +62,12 @@
     배포 중 수정: siren.service 경로 S_Crawling, iptables는 REJECT보다 위에 삽입해야 함(DEPLOY.md 반영).
 - [완료] 운영 보정 — 시간 KST 표시(database.KST), g2b/iris API 타임아웃 30초로 상향(data.go.kr ReadTimeout 대응).
 
+- [완료] 공고 대시보드 왼쪽 사이드바(수집 사이트 5곳 + 사이트별 공고 수) 추가.
+- [완료] 마감 지난 공고 자동 숨김 — get_announcements(only_open=True). 마감일 형식 통일 파싱(_deadline_passed).
+    마감일 없는 IRIS 글은 판단 불가라 유지(숨기면 IRIS 통째로 사라짐).
+
 ## 메모 / 미해결 (확인·후속 필요 — 비워두고 진행)
+- [ ] IRIS(과기부 API)는 마감일 필드가 없어 '선정결과' 등 비공모 글이 섞일 수 있음(마감 필터로 못 거름).
 - [ ] g2b는 용역(service) 입찰만 수집. 필요 시 공사/물품 오퍼레이션 추가 가능.
 - [ ] iris=과기부 사업공고 API 대체. 산업부 전용 IRIS 공고가 꼭 필요하면 별도 소스 검토.
 - [ ] (선택) g2b·iris·smtech·kstartup도 상세 본문 보강 가능하나 현재는 제목/요약 매칭으로 충분.

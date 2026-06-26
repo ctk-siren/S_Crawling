@@ -38,7 +38,7 @@ app = Flask(__name__)
 @app.route("/")
 def index():
     """공고 대시보드. 신규·매칭수 우선 정렬된 공고와 키워드 목록을 보여준다."""
-    announcements = db.get_announcements()
+    announcements = db.get_announcements(only_open=True)  # 마감 지난 공고 제외
     keywords = db.get_keywords()
     last_crawled = db.get_meta("last_crawled_at", "아직 수집 안 함")
 
