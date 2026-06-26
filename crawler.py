@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
 
+import ai_filter
 import config
 import database as db
 
@@ -415,13 +416,26 @@ CRAWLERS = {
 # ----------------------------------------------------------------------------
 def run_crawl():
     """
-    전체 사이트 수집 → 키워드 매칭 → 매칭된 공고만 DB 저장.
-    반환: 사이트별/합계 수집 요약 dict.
+    전체 사이트 수집 → (AI 가능하면) 관련도 판단, 아니면 키워드 매칭 → 관련 공고만 저장.
+
+    AI 판단 정책
+      - ai_filter 사용 가능(키 있음 + AI_ENABLED) + 이달 예산 미초과일 때만 호출.
+      - 같은 URL 은 ai_judgments 캐시를 재사용(매일 재판단 안 함 → 비용 최소).
+      - 예산 초과/AI 실패 시 키워드 매칭으로 폴백.
+    반환: 사이트별/합계 수집 요약 dict(ai 사용·비용 포함).
     """
     db.init_db()
     keywords = db.get_keyword_strings()
 
-    summary = {"sites": {}, "fetched": 0, "matched": 0, "saved": 0, "errors": {}}
+    ai_on = ai_filter.is_available()
+    budget = config.AI_MONTHLY_BUDGET_KRW
+    spent = db.get_ai_spend()  # 이달 누적(원)
+
+    summary = {
+        "sites": {}, "fetched": 0, "matched": 0, "saved": 0, "errors": {},
+        "ai_enabled": ai_on, "ai_calls": 0, "ai_cost_krw": 0.0,
+        "ai_budget_left": max(0.0, budget - spent),
+    }
 
     for site in config.SITES:
         key = site["key"]
@@ -443,11 +457,43 @@ def run_crawl():
         for item in raw_items:
             text = f"{item.get('title', '')} {item.get('body', '')}"
             matched = match_keywords(text, keywords)
-            if not matched:
-                continue
-            s_matched += 1
             item["matched_keywords"] = matched
-            if db.save_announcement(item):
+
+            url = item.get("url", "")
+            relevant = bool(matched)  # 기본(폴백): 키워드 매칭 여부
+
+            # --- AI 관련도 판단 ---
+            if ai_on:
+                cached = db.get_ai_judgment(url) if url else None
+                if cached is not None:
+                    # 캐시 재사용 — 비용 0
+                    item["ai_relevant"] = cached["relevant"]
+                    item["ai_score"] = cached["score"]
+                    item["ai_reason"] = cached["reason"]
+                    relevant = bool(cached["relevant"])
+                elif spent < budget:
+                    verdict = ai_filter.judge_relevance(item.get("title", ""), item.get("body", ""))
+                    if verdict is not None:
+                        summary["ai_calls"] += 1
+                        cost = ai_filter.estimate_cost_krw(
+                            verdict["usage"]["input"], verdict["usage"]["output"]
+                        )
+                        spent += cost
+                        summary["ai_cost_krw"] += cost
+                        db.add_ai_spend(cost)
+                        rel = bool(verdict.get("relevant")) and int(verdict.get("score", 0)) >= config.AI_RELEVANT_SCORE
+                        item["ai_relevant"] = rel
+                        item["ai_score"] = verdict.get("score", 0)
+                        item["ai_reason"] = verdict.get("reason", "")
+                        if url:
+                            db.save_ai_judgment(url, rel, verdict.get("score", 0), verdict.get("reason", ""))
+                        relevant = rel
+                    # verdict None(AI 실패) → relevant 는 키워드 폴백값 유지
+                # 예산 초과 → AI 건너뛰고 키워드 폴백
+
+            if matched:
+                s_matched += 1
+            if relevant and db.save_announcement(item):
                 s_saved += 1
 
         summary["sites"][key] = {
@@ -458,6 +504,8 @@ def run_crawl():
         summary["fetched"] += s_fetched
         summary["matched"] += s_matched
         summary["saved"] += s_saved
+
+    summary["ai_budget_left"] = max(0.0, budget - spent)
 
     # 오늘 수집분 강조 플래그 갱신 + 마지막 수집 시각 기록
     db.refresh_is_new_flags()

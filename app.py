@@ -22,6 +22,7 @@ from collections import Counter
 
 from flask import Flask, jsonify, render_template, request
 
+import ai_filter
 import config
 import crawler
 import database as db
@@ -37,8 +38,9 @@ app = Flask(__name__)
 # ----------------------------------------------------------------------------
 @app.route("/")
 def index():
-    """공고 대시보드. 신규·매칭수 우선 정렬된 공고와 키워드 목록을 보여준다."""
-    announcements = db.get_announcements(only_open=True)  # 마감 지난 공고 제외
+    """공고 대시보드. 신규·AI 관련도 우선 정렬된 공고와 키워드 목록을 보여준다."""
+    # 마감 안 지난 + 관련(AI 판정 또는 키워드) 공고만
+    announcements = db.get_announcements(only_open=True, only_relevant=True)
     keywords = db.get_keywords()
     last_crawled = db.get_meta("last_crawled_at", "아직 수집 안 함")
 
@@ -49,6 +51,13 @@ def index():
         for s in config.SITES
     ]
 
+    # AI 판단 사용 여부·이달 추정 비용(사이드바 표시용)
+    ai_info = {
+        "enabled": ai_filter.is_available(),
+        "spend": round(db.get_ai_spend()),
+        "budget": config.AI_MONTHLY_BUDGET_KRW,
+    }
+
     return render_template(
         "index.html",
         announcements=announcements,
@@ -56,6 +65,7 @@ def index():
         last_crawled=last_crawled,
         total=len(announcements),
         sites=sites,
+        ai_info=ai_info,
     )
 
 

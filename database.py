@@ -112,8 +112,27 @@ def init_db():
                 key   TEXT PRIMARY KEY,
                 value TEXT
             );
+
+            -- AI 판단 캐시: 같은 URL 을 매일 재판단하지 않도록 결과를 보관
+            CREATE TABLE IF NOT EXISTS ai_judgments (
+                url       TEXT PRIMARY KEY,
+                relevant  INTEGER,
+                score     INTEGER,
+                reason    TEXT,
+                judged_at TEXT
+            );
             """
         )
+
+        # announcements 에 AI 컬럼이 없으면 추가(기존 DB 마이그레이션)
+        existing = {row["name"] for row in cur.execute("PRAGMA table_info(announcements)")}
+        for col, ddl in (
+            ("ai_relevant", "ALTER TABLE announcements ADD COLUMN ai_relevant INTEGER DEFAULT 0"),
+            ("ai_score", "ALTER TABLE announcements ADD COLUMN ai_score INTEGER DEFAULT 0"),
+            ("ai_reason", "ALTER TABLE announcements ADD COLUMN ai_reason TEXT"),
+        ):
+            if col not in existing:
+                cur.execute(ddl)
 
         # 키워드 시드 (최초 1회)
         cur.execute("SELECT COUNT(*) AS c FROM keywords")
@@ -177,7 +196,8 @@ def delete_keyword(keyword_id):
 def save_announcement(item):
     """
     공고 1건 저장. url 중복이면 무시(이미 수집된 공고).
-    item dict 키: source, title, url, body, deadline, fund_scale, matched_keywords(list)
+    item dict 키: source, title, url, body, deadline, fund_scale, matched_keywords(list),
+                  ai_relevant(bool), ai_score(int), ai_reason(str)
     저장 성공(신규) 시 True, 중복이면 False 반환.
     """
     matched = item.get("matched_keywords") or []
@@ -187,8 +207,9 @@ def save_announcement(item):
             """
             INSERT OR IGNORE INTO announcements
                 (source, title, url, body, deadline, fund_scale,
-                 matched_keywords, collected_at, is_new)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                 matched_keywords, collected_at, is_new,
+                 ai_relevant, ai_score, ai_reason)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
             """,
             (
                 item.get("source", ""),
@@ -199,16 +220,22 @@ def save_announcement(item):
                 item.get("fund_scale", ""),
                 matched_str,
                 _now(),
+                1 if item.get("ai_relevant") else 0,
+                int(item.get("ai_score") or 0),
+                item.get("ai_reason", ""),
             ),
         )
         return cur.rowcount > 0
 
 
-def get_announcements(only_open=False):
+def get_announcements(only_open=False, only_relevant=False):
     """
-    공고 목록 반환. 신규(오늘) 우선, 매칭 키워드 수 내림차순, 최신순.
+    공고 목록 반환. 신규(오늘) → AI 관련도 점수 → 매칭 키워드 수 → 최신순.
     matched_keywords 는 리스트로 변환해 돌려준다.
-    only_open=True 면 마감일이 지난 공고는 제외한다(마감일 없는 건 그대로 유지).
+    only_open=True     마감일이 지난 공고 제외(마감일 없는 건 유지).
+    only_relevant=True  AI 관련 판정(ai_relevant=1) 공고만. 단 AI 판단 자체가 없었던
+                        공고(ai_score=0, ai_reason 없음)는 키워드 매칭으로 판단해 유지
+                        (AI 꺼짐/예산초과 기간 수집분이 사라지지 않도록).
     """
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM announcements").fetchall()
@@ -221,10 +248,22 @@ def get_announcements(only_open=False):
         kws = [k for k in (d.get("matched_keywords") or "").split(",") if k]
         d["matched_keywords"] = kws
         d["match_count"] = len(kws)
+        d["ai_score"] = d.get("ai_score") or 0
+        d["ai_relevant"] = d.get("ai_relevant") or 0
+
+        if only_relevant:
+            ai_judged = bool(d.get("ai_reason"))  # AI 가 실제로 판단한 적 있는지
+            if ai_judged:
+                if not d["ai_relevant"]:
+                    continue  # AI 가 무관으로 판정
+            else:
+                if not kws:
+                    continue  # AI 판단 없고 키워드도 없으면 제외
+
         items.append(d)
 
     items.sort(
-        key=lambda x: (x["is_new"], x["match_count"], x["collected_at"]),
+        key=lambda x: (x["is_new"], x["ai_score"], x["match_count"], x["collected_at"]),
         reverse=True,
     )
     return items
@@ -333,6 +372,48 @@ def get_meta(key, default=None):
     with get_conn() as conn:
         row = conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
         return row["value"] if row else default
+
+
+# ----------------------------------------------------------------------------
+# AI 판단 캐시 (같은 URL 재판단 방지)
+# ----------------------------------------------------------------------------
+def get_ai_judgment(url):
+    """저장된 AI 판단 반환 {relevant, score, reason} 또는 없으면 None."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT relevant, score, reason FROM ai_judgments WHERE url = ?", (url,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def save_ai_judgment(url, relevant, score, reason):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO ai_judgments (url, relevant, score, reason, judged_at) "
+            "VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(url) DO UPDATE SET relevant=excluded.relevant, "
+            "score=excluded.score, reason=excluded.reason, judged_at=excluded.judged_at",
+            (url, 1 if relevant else 0, int(score or 0), reason or "", _now()),
+        )
+
+
+# ----------------------------------------------------------------------------
+# AI 월별 누적 비용(원) — 예산 상한 판단용. meta 에 'ai_spend_YYYY-MM' 키로 저장.
+# ----------------------------------------------------------------------------
+def _spend_key(month=None):
+    return "ai_spend_" + (month or datetime.now(KST).strftime("%Y-%m"))
+
+
+def add_ai_spend(won):
+    """이달 누적 AI 비용에 won 을 더한다."""
+    key = _spend_key()
+    cur = float(get_meta(key, "0") or "0")
+    set_meta(key, str(cur + won))
+
+
+def get_ai_spend(month=None):
+    """이달(또는 지정 월) 누적 AI 추정 비용(원)."""
+    return float(get_meta(_spend_key(month), "0") or "0")
 
 
 if __name__ == "__main__":

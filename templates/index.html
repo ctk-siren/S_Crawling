@@ -30,6 +30,11 @@
           {% endfor %}
         </ul>
         <p class="sidebar-note">매일 오전 8시 자동 수집</p>
+        {% if ai_info.enabled %}
+        <p class="sidebar-note">AI 관련도 판단 켜짐<br />이달 비용 약 {{ ai_info.spend }}원 / 한도 {{ ai_info.budget }}원</p>
+        {% else %}
+        <p class="sidebar-note">AI 판단 꺼짐(키워드 방식)</p>
+        {% endif %}
       </section>
     </aside>
 
@@ -68,6 +73,10 @@
           <div class="card-top">
             <span class="source">{{ a.source }}</span>
             {% if a.is_new %}<span class="badge-new">NEW</span>{% endif %}
+            {% if a.ai_reason %}
+              {% if a.ai_score >= 70 %}<span class="badge-ai high">관련도 높음</span>
+              {% else %}<span class="badge-ai">관련</span>{% endif %}
+            {% endif %}
           </div>
           <h3 class="card-title">
             <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
@@ -76,6 +85,9 @@
             {% if a.deadline %}<span>마감 {{ a.deadline }}</span>{% endif %}
             {% if a.fund_scale %}<span>· 지원규모 {{ a.fund_scale }}</span>{% endif %}
           </div>
+          {% if a.ai_reason %}
+          <div class="ai-reason">✓ {{ a.ai_reason }}</div>
+          {% endif %}
           <div class="card-keywords">
             {% for kw in a.matched_keywords %}<span class="tag">#{{ kw }}</span>{% endfor %}
           </div>

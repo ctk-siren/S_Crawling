@@ -184,6 +184,25 @@ button:disabled { opacity: 0.6; cursor: default; }
   padding: 2px 7px;
   border-radius: 6px;
 }
+.badge-ai {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.badge-ai.high { color: #fff; background: var(--primary); border-color: var(--primary); }
+.ai-reason {
+  font-size: 13px;
+  color: #0f766e;
+  background: #f0fdfa;
+  border-left: 3px solid #14b8a6;
+  padding: 6px 10px;
+  border-radius: 0 6px 6px 0;
+  line-height: 1.45;
+}
 .card-title { margin: 0; font-size: 15px; line-height: 1.4; }
 .card-title a { color: var(--text); text-decoration: none; }
 .card-title a:hover { color: var(--primary); }

@@ -66,6 +66,17 @@
 - [완료] 마감 지난 공고 자동 숨김 — get_announcements(only_open=True). 마감일 형식 통일 파싱(_deadline_passed).
     마감일 없는 IRIS 글은 판단 불가라 유지(숨기면 IRIS 통째로 사라짐).
 
+## AI 관련도 판단 기능 (2026-06-26 추가)
+- [완료] ai_filter.py — Claude(Haiku 4.5) structured output으로 관련도(relevant/score/reason) 판단. 키 없거나 실패 시 None(폴백).
+- [완료] config — ANTHROPIC_API_KEY(env/anthropic_key.txt), AI_ENABLED, AI_MODEL, AI_MONTHLY_BUDGET_KRW(6000), 단가·비전.
+- [완료] database — ai_judgments 캐시 테이블, announcements ai_relevant/ai_score/ai_reason 컬럼(ALTER 마이그레이션),
+    월별 비용 meta(add_ai_spend/get_ai_spend), get_announcements(only_relevant=).
+- [완료] crawler.run_crawl — 신규 URL만 AI 호출(캐시 재사용), 월예산 초과 시 키워드 폴백, summary에 ai_calls·ai_cost_krw.
+- [완료] UI — 대시보드는 관련 공고만(only_relevant), 카드에 AI 이유·관련도 배지, 사이드바에 이달 AI 비용.
+- 검증(mock): 키워드 없는 '바닥충격음' 공고도 AI가 관련(80) 판정·저장, 무관 제외, 캐시 재사용·예산0 폴백, 키없음 무중단 모두 확인.
+- [검증대기] **실제 Claude API 호출**은 ANTHROPIC_API_KEY 발급 후 라이브 검증 필요. 기본 AI_ENABLED=True지만 키 없으면 자동으로 키워드 모드.
+- 비용 통제: 앱 월 상한(6000원, 초과 시 폴백) + Anthropic Console 하드 한도(사용자 설정 권장).
+
 ## 메모 / 미해결 (확인·후속 필요 — 비워두고 진행)
 - [ ] IRIS(과기부 API)는 마감일 필드가 없어 '선정결과' 등 비공모 글이 섞일 수 있음(마감 필터로 못 거름).
 - [ ] g2b는 용역(service) 입찰만 수집. 필요 시 공사/물품 오퍼레이션 추가 가능.

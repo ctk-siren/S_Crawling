@@ -123,3 +123,41 @@ DETAIL_REQUEST_DELAY = 0.3
 # ----------------------------------------------------------------------------
 HOTDEAL_SITE_NAME = "네이버쇼핑"
 HOTDEAL_MAX_ITEMS = 10  # 키워드당 표시할 최대 상품 수
+
+# ----------------------------------------------------------------------------
+# AI 관련도 판단 (Claude API)
+#   공고가 회사 비전과 관련 있는지 Claude 가 판단하고 한 줄 이유를 붙인다.
+#   키는 소스에 박지 않는다. 환경변수 ANTHROPIC_API_KEY → anthropic_key.txt 파일 순.
+#   키가 없거나 AI_ENABLED=False 면 키워드 방식으로 무중단 폴백.
+# ----------------------------------------------------------------------------
+def _load_anthropic_key():
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        key_file = os.path.join(BASE_DIR, "anthropic_key.txt")
+        if os.path.exists(key_file):
+            with open(key_file, encoding="utf-8") as f:
+                key = f.read().strip()
+    return key
+
+
+ANTHROPIC_API_KEY = _load_anthropic_key()
+
+AI_ENABLED = True                       # False 면 AI 끄고 키워드 방식만 사용
+AI_MODEL = "claude-haiku-4-5"           # 분류용 최저가 모델. 필요시 claude-sonnet-4-6 등으로 교체
+AI_MAX_BODY_CHARS = 1500                # 판단에 넘길 본문 최대 길이(토큰·비용 절약)
+AI_RELEVANT_SCORE = 50                  # 이 점수 이상이면 관련 공고로 저장
+
+# 비용 통제 — 이달 누적 추정 비용이 한도에 도달하면 그달 남은 기간 AI 중지(키워드 폴백)
+AI_MONTHLY_BUDGET_KRW = 6000
+
+# Claude Haiku 4.5 단가 (100만 토큰당 USD) — 비용 추정용
+AI_PRICE_INPUT_PER_1M = 1.0
+AI_PRICE_OUTPUT_PER_1M = 5.0
+USD_TO_KRW = 1400                       # 대략 환율(추정용)
+
+# AI 판단 프롬프트에 쓰는 회사 비전
+COMPANY_VISION = """세이렌어쿠스틱스는 두 가지 핵심 서비스를 개발하는 회사입니다.
+1. 층간소음을 주거환경에서 모니터링할 수 있는 서비스 (CARE)
+2. 능동 진동·소음 제어 기술로 주거환경을 개선하는 서비스 (MUTER)
+주거 공간의 소음·진동 문제 해결과 거주환경 품질 향상이 핵심 미션입니다.
+음향, 진동, 소음 제어, 센서, 신호처리, 스마트홈, 공동주택 환경 분야가 관련 깊습니다."""

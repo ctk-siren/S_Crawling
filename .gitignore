@@ -1,5 +1,6 @@
 # 비밀값 — 절대 커밋 금지
 service_key.txt
+anthropic_key.txt
 .env
 
 # 데이터베이스(런타임 생성)
