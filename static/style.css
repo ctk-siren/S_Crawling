@@ -227,6 +227,37 @@ button:disabled { opacity: 0.6; cursor: default; }
 /* 핫딜 가격 */
 .deal .price { font-size: 18px; font-weight: 700; color: var(--danger); }
 
+/* 수집 중 오버레이 + 스피너 (클릭 차단) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+.overlay.show { display: flex; }
+.spinner {
+  width: 56px;
+  height: 56px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.overlay-text {
+  color: #fff;
+  margin-top: 18px;
+  font-weight: 600;
+  font-size: 15px;
+  text-align: center;
+  line-height: 1.6;
+}
+
 /* 빈 상태 */
 .empty {
   grid-column: 1 / -1;

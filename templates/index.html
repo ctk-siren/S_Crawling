@@ -101,6 +101,12 @@
     </div>
   </main>
 
+  <!-- 수집 중 전체 화면 오버레이 (클릭 차단 + 진행 스피너) -->
+  <div id="overlay" class="overlay">
+    <div class="spinner"></div>
+    <div class="overlay-text">공고를 수집하고 AI가 판단 중입니다…<br />1~2분 걸려요. 잠시만 기다려 주세요.</div>
+  </div>
+
   <script>
     // 공고 키워드 추가
     document.getElementById("kw-form").addEventListener("submit", async (e) => {
@@ -132,21 +138,44 @@
       else alert(data.error || "삭제 실패");
     });
 
-    // 지금 수집 — 백그라운드로 돌므로 시작만 알리고 안내 (AI 판단 시 1~2분 소요)
-    document.getElementById("crawl-btn").addEventListener("click", async (e) => {
-      const btn = e.target;
-      btn.disabled = true;
-      btn.textContent = "수집 시작 중...";
+    // 수집 중 오버레이 + 진행 폴링
+    const overlay = document.getElementById("overlay");
+    let pollTimer = null;
+
+    function showOverlay() { overlay.classList.add("show"); }
+    function hideOverlay() { overlay.classList.remove("show"); }
+
+    function startPolling() {
+      if (pollTimer) return;
+      pollTimer = setInterval(async () => {
+        try {
+          const r = await fetch("/api/crawl/status");
+          const d = await r.json();
+          if (!d.running) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            location.reload(); // 끝나면 새 결과로 새로고침
+          }
+        } catch (e) { /* 일시 오류는 무시하고 계속 폴링 */ }
+      }, 3000);
+    }
+
+    // 지금 수집 — 클릭 즉시 오버레이로 화면 잠그고, 끝날 때까지 폴링
+    document.getElementById("crawl-btn").addEventListener("click", async () => {
+      showOverlay();
       try {
-        const res = await fetch("/api/crawl", { method: "POST" });
-        const data = await res.json();
-        alert(data.message || "수집을 시작했습니다. 1~2분 뒤 새로고침하세요.");
-      } catch (err) {
-        alert("수집 시작 중 오류: " + err);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "지금 수집";
-      }
+        await fetch("/api/crawl", { method: "POST" });
+      } catch (e) { /* 시작 요청 실패해도 폴링이 상태를 확인 */ }
+      startPolling();
+    });
+
+    // 페이지 열 때 이미 수집 중이면(새로고침/타기기) 오버레이 유지
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const r = await fetch("/api/crawl/status");
+        const d = await r.json();
+        if (d.running) { showOverlay(); startPolling(); }
+      } catch (e) { /* noop */ }
     });
   </script>
 </body>

@@ -180,11 +180,15 @@ def _background_crawl():
 @app.route("/api/crawl", methods=["POST"])
 def api_crawl():
     if not _crawl_lock.acquire(blocking=False):
-        return jsonify({"ok": True, "started": False, "message": "이미 수집이 진행 중입니다"})
+        return jsonify({"ok": True, "started": False, "running": True})
     threading.Thread(target=_background_crawl, daemon=True).start()
-    return jsonify(
-        {"ok": True, "started": True, "message": "수집을 시작했습니다. 1~2분 뒤 새로고침하세요."}
-    )
+    return jsonify({"ok": True, "started": True, "running": True})
+
+
+@app.route("/api/crawl/status")
+def api_crawl_status():
+    """수집이 진행 중인지(running) 알려준다. 프론트가 폴링해 스피너 제어."""
+    return jsonify({"running": _crawl_lock.locked()})
 
 
 # ----------------------------------------------------------------------------
