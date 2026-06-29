@@ -17,6 +17,7 @@
 import re
 import time
 from datetime import datetime, timedelta
+from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
@@ -57,6 +58,11 @@ def match_keywords(text, keywords):
 def _clean(text):
     """공백 정리."""
     return re.sub(r"\s+", " ", (text or "")).strip()
+
+
+def _fallback_url(base, title):
+    """딥링크가 없는 공고용 고유 URL. 같은 목록URL 충돌(UNIQUE)을 막아 전부 저장되게 한다."""
+    return base + "#" + quote((title or "")[:40])
 
 
 def _site_name(key):
@@ -211,7 +217,7 @@ def crawl_smtech():
             if href.startswith("/"):
                 href = SMTECH_BASE + href
         else:
-            href = SMTECH_LIST_URL
+            href = _fallback_url(SMTECH_LIST_URL, title)  # 딥링크 없는 IRIS 위탁공고
 
         biz = _clean(tds[2].get_text())          # 사업명
         period = tds[4].get_text()                # 접수기간 'YYYY. MM. DD ~ YYYY. MM. DD'
@@ -257,7 +263,7 @@ def crawl_kstartup():
             m = re.search(r"go_view\((\d+)\)", a.get("href", ""))
             if m:
                 sn = m.group(1)
-        url = f"{KSTARTUP_LIST_URL}?schM=view&pbancSn={sn}" if sn else KSTARTUP_LIST_URL
+        url = f"{KSTARTUP_LIST_URL}?schM=view&pbancSn={sn}" if sn else _fallback_url(KSTARTUP_LIST_URL, title)
 
         deadline = ""
         bottom = li.select_one(".bottom")
@@ -493,7 +499,10 @@ def run_crawl():
 
             if matched:
                 s_matched += 1
-            if relevant and db.save_announcement(item):
+            # 전체 공고 페이지(/all)를 위해 관련 여부와 무관하게 모두 저장한다.
+            # relevant 여부는 item.ai_relevant 에 실려 메인 페이지 필터에 쓰인다.
+            item["ai_relevant"] = item.get("ai_relevant", relevant)
+            if db.save_announcement(item):
                 s_saved += 1
 
         summary["sites"][key] = {

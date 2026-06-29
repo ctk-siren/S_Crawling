@@ -70,6 +70,25 @@ def index():
     )
 
 
+@app.route("/all")
+def all_announcements():
+    """전체 공고 페이지. 관련 여부와 무관하게 수집된 모든 공고를 최신순으로 보여준다."""
+    announcements = db.get_all_announcements(limit=200)
+    counts = Counter(a["source"] for a in announcements)
+    sites = [
+        {"name": s["name"], "url": s["base_url"], "count": counts.get(s["name"], 0)}
+        for s in config.SITES
+    ]
+    last_crawled = db.get_meta("last_crawled_at", "아직 수집 안 함")
+    return render_template(
+        "all.html",
+        announcements=announcements,
+        sites=sites,
+        last_crawled=last_crawled,
+        total=len(announcements),
+    )
+
+
 @app.route("/hotdeal")
 def hotdeal():
     """핫딜 페이지. 등록된 키워드별 수집 결과를 보여준다."""

@@ -269,6 +269,29 @@ def get_announcements(only_open=False, only_relevant=False):
     return items
 
 
+def get_all_announcements(limit=200):
+    """
+    관련 여부와 무관하게 전체 공고를 수집 최신순으로 반환(전체 공고 페이지용).
+    collected_at DESC, id DESC 정렬, 최근 limit건.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM announcements ORDER BY collected_at DESC, id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+
+    items = []
+    for r in rows:
+        d = dict(r)
+        kws = [k for k in (d.get("matched_keywords") or "").split(",") if k]
+        d["matched_keywords"] = kws
+        d["match_count"] = len(kws)
+        d["ai_score"] = d.get("ai_score") or 0
+        d["ai_relevant"] = d.get("ai_relevant") or 0
+        items.append(d)
+    return items
+
+
 def refresh_is_new_flags():
     """오늘 수집분만 is_new=1, 나머지는 0 으로 갱신."""
     today = _today()

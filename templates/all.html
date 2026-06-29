@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>세이렌 전체 공고</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">세이렌 크롤링 대시보드</div>
+    <nav class="tabs">
+      <a class="tab" href="/">관련 공고</a>
+      <a class="tab active" href="/all">전체 공고</a>
+      <a class="tab" href="/hotdeal">핫딜</a>
+    </nav>
+  </header>
+
+  <main class="container layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-head"><h2>수집 사이트</h2></div>
+        <ul class="site-list">
+          {% for s in sites %}
+          <li class="site-item">
+            <a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.name }}</a>
+            <span class="count" title="전체 공고 중 이 사이트 수">{{ s.count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="sidebar-note">관련 여부와 무관하게<br />수집된 전체 공고 (최신순)</p>
+      </section>
+    </aside>
+
+    <div class="main-col">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>전체 공고 <span class="count">{{ total }}</span></h2>
+          <span class="muted">마지막 수집 {{ last_crawled }}</span>
+        </div>
+
+        <div class="cards">
+          {% for a in announcements %}
+          <article class="card">
+            <div class="card-top">
+              <span class="source">{{ a.source }}</span>
+              {% if a.is_new %}<span class="badge-new">NEW</span>{% endif %}
+              {% if a.ai_reason %}
+                {% if a.ai_relevant %}
+                  {% if a.ai_score >= 70 %}<span class="badge-ai high">관련도 높음</span>
+                  {% else %}<span class="badge-ai">관련</span>{% endif %}
+                {% else %}
+                  <span class="badge-na">관련 낮음 {{ a.ai_score }}</span>
+                {% endif %}
+              {% else %}
+                <span class="badge-na">미판단</span>
+              {% endif %}
+            </div>
+            <h3 class="card-title">
+              <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
+            </h3>
+            <div class="card-meta">
+              {% if a.deadline %}<span>마감 {{ a.deadline }}</span>{% endif %}
+              {% if a.fund_scale %}<span>· 지원규모 {{ a.fund_scale }}</span>{% endif %}
+              <span>· 수집 {{ a.collected_at }}</span>
+            </div>
+            {% if a.ai_reason %}
+            <div class="ai-reason">{{ a.ai_reason }}</div>
+            {% endif %}
+            <a class="card-link" href="{{ a.url }}" target="_blank" rel="noopener">공고 원문 보기 →</a>
+          </article>
+          {% else %}
+          <div class="empty">아직 수집된 공고가 없습니다. 관련 공고 페이지에서 <b>지금 수집</b>을 눌러보세요.</div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
